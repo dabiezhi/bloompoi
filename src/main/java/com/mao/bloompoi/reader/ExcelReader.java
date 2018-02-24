@@ -9,8 +9,8 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -27,15 +27,19 @@ public class ExcelReader<T> {
     private int startRowIndex = 1;
     private Function<T, ValidResult> validFunction;
     private ExcelResult<T> excelResult = new ExcelResult<>();
+    private Map<String, Integer> colMap = new HashMap<>();
+    private Map<String, String> specialValueMap = new HashMap<>();
 
     public ExcelReader(Workbook workbook, Class<T> type) {
         this.workbook = workbook;
         this.type = type;
+        colMap = ExcelUtils.getWriteFieldNames(type);
     }
 
     public ExcelResult<T> asResult() {
         List<T> rows = this.asStream().map(Pair::getV).collect(Collectors.toList());
         this.excelResult.setRows(rows);
+        this.excelResult.setColMap(colMap);
         return this.excelResult;
     }
 
@@ -50,7 +54,7 @@ public class ExcelReader<T> {
         int lastRowNum = sheet.getLastRowNum();
 
         List<Pair<Integer, T>> list = new ArrayList<>(lastRowNum);
-
+        buildSpecialMap(sheet);
         for (int rowNum = firstRowNum + this.startRowIndex; rowNum <= lastRowNum; rowNum++) {
             Row row = sheet.getRow(rowNum);
             if (null == row) {
@@ -64,10 +68,8 @@ public class ExcelReader<T> {
         return list.stream();
     }
 
-
     private T buildItem(Row row) {
         T item = ExcelUtils.newInstance(type);
-        Map<String, Integer> specialMap = ExcelUtils.getSpecialFieldMap(type);
         if (null == item) {
             return null;
         }
@@ -75,15 +77,9 @@ public class ExcelReader<T> {
         int lastCellNum = row.getLastCellNum();
         for (int cellNum = firstCellNum; cellNum < lastCellNum; cellNum++) {
             Cell cell = row.getCell(cellNum);
-            boolean isSpecialRow= specialMap.values().contains(row.getRowNum());
-            boolean flag = specialMap.values().contains(row.getRowNum())
-                    && null == specialMap.get(row.getRowNum() + Constant.UNDERLINE + cellNum);
-            if (flag) {
-                continue;
-            }
             String value = ExcelUtils.getCellValue(cell);
-
-            String validMsg = ExcelUtils.validFieldByAnnotation(item, cellNum, value,isSpecialRow);
+            String validMsg = ExcelUtils.validFieldByAnnotation(item, row.getRowNum(), cellNum,
+                    value, Boolean.FALSE);
             if (null != this.validFunction) {
                 ValidResult validResult = validFunction.apply(item);
                 validMsg = validResult.getMsg();
@@ -91,9 +87,31 @@ public class ExcelReader<T> {
             if (StringUtils.isNotBlank(validMsg)) {
                 excelResult.addValidResult(new ValidResult(row.getRowNum(), cellNum, validMsg));
             }
-            ExcelUtils.writeToField(item, cellNum, value, isSpecialRow);
+            ExcelUtils.writeToField(item, row.getRowNum(), cellNum, value, Boolean.FALSE);
         }
+        specialValueMap.forEach((k, v) -> ExcelUtils.writeToField(item,
+                Integer.valueOf(k.substring(0, k.indexOf(Constant.UNDERLINE))),
+                Integer.valueOf(k.substring(k.indexOf(Constant.UNDERLINE) + 1)), v, Boolean.TRUE));
+        ExcelUtils.writeToField(item, row.getRowNum(), -999, String.valueOf(row.getRowNum()), Boolean.FALSE);
         return item;
+    }
+
+    private void buildSpecialMap(Sheet sheet) {
+        for (int i = 0; i < startRowIndex; i++) {
+            Map<String, Integer> specialMap = ExcelUtils.getSpecialFieldMap(type);
+            Row row = sheet.getRow(i);
+            for (int cellNum = row.getFirstCellNum(); cellNum < row.getLastCellNum(); cellNum++) {
+                Cell cell = row.getCell(cellNum);
+                boolean isSpecialRow = specialMap.values().contains(row.getRowNum());
+                boolean flag = isSpecialRow
+                        && null == specialMap.get(row.getRowNum() + Constant.UNDERLINE + cellNum);
+                if (flag) {
+                    continue;
+                }
+                String value = ExcelUtils.getCellValue(cell);
+                specialValueMap.put(row.getRowNum() + Constant.UNDERLINE + cellNum, value);
+            }
+        }
     }
 
     public ExcelReader<T> valid(Function<T, ValidResult> validFunction) {

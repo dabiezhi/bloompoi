@@ -17,15 +17,15 @@ import java.util.Collection;
 /**
  * Created by mao on 2018/2/14.
  */
-public class ExcelPlus {
+public class Bloom {
 
     private Exporter exporter;
 
-    public <T> ExcelPlus export(Collection<T> data) {
+    public <T> Bloom export(Collection<T> data) {
         return this.export(Exporter.create(data));
     }
 
-    public <T> ExcelPlus export(Exporter<T> exporter) {
+    public <T> Bloom export(Exporter<T> exporter) {
         this.exporter = exporter;
         return this;
     }
@@ -67,7 +67,7 @@ public class ExcelPlus {
         }
     }
 
-    public static ExcelPlus me() {
-        return new ExcelPlus();
+    public static Bloom me() {
+        return new Bloom();
     }
 }

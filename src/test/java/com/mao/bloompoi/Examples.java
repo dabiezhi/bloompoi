@@ -3,6 +3,8 @@ package com.mao.bloompoi;
 import com.mao.bloompoi.exception.ExcelException;
 import com.mao.bloompoi.model.CardSecret;
 import com.mao.bloompoi.model.User;
+import com.mao.bloompoi.reader.ExcelResult;
+import com.mao.bloompoi.utils.ExcelUtils;
 import com.mao.bloompoi.writer.Exporter;
 import org.assertj.core.util.Lists;
 import org.junit.Test;
@@ -12,8 +14,10 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,9 +28,16 @@ import java.util.Map;
 public class Examples {
 
     @Test
+    public void testReadValid() throws ExcelException {
+        ExcelResult<CardSecret> excelResult = Bloom.me()
+                .read(new File("D:\\卡密列表.xls"), CardSecret.class).startRow(2).asResult();
+        System.out.println(excelResult);
+    }
+
+    @Test
     public void testExport() throws ExcelException {
         List<CardSecret> cardSecrets = this.buildCardSecrets();
-        ExcelPlus.me().export(cardSecrets).writeAsFile(new File("D:\\卡密列表.xls"));
+        Bloom.me().export(cardSecrets).writeAsFile(new File("D:\\卡密列表.xls"));
     }
 
     @Test
@@ -56,10 +67,11 @@ public class Examples {
         // SPEL上下文
         EvaluationContext context = new StandardEvaluationContext();
         context.setVariable(user.getClass().getSimpleName(), user);
-//        System.out.println(parser
-//                .parseExpression("#User.list[0].map['年龄']")
-//                .getValue(context));
-        ExcelPlus.me().export(Exporter.create(map).byTemplate("D:\\卡密列表.xls")).writeAsFileBySpel(new File("D:\\卡密列表1.xls"));
+        // System.out.println(parser
+        // .parseExpression("#User.list[0].map['年龄']")
+        // .getValue(context));
+        Bloom.me().export(Exporter.create(map).byTemplate("D:\\卡密列表.xls"))
+                .writeAsFileBySpel(new File("D:\\卡密列表1.xls"));
     }
 
     private List<CardSecret> buildCardSecrets() {

@@ -1,8 +1,8 @@
 package com.mao.bloompoi.model;
 
-
 import com.mao.bloompoi.annotation.Excel;
 import com.mao.bloompoi.annotation.ExcelField;
+import com.mao.bloompoi.annotation.Special;
 import com.mao.bloompoi.converter.UsedTypeConverter;
 
 import java.io.Serializable;
@@ -12,12 +12,15 @@ import java.util.Map;
 
 /**
  * 一卡通卡密
- *
  * @author biezhi
  * @date 2018/2/4
  */
 @Excel
-public class CardSecret implements Serializable {
+public class CardSecret extends ImportModel implements Serializable {
+
+//    @ExcelField(columnName = "姓名",
+//            special = @Special(isSpecial = true, specialColNum = 1, specialRowNum = 0))
+//    private String name;
 
     @ExcelField(order = 0, columnName = "运营商")
     private Integer cardType;
@@ -31,15 +34,17 @@ public class CardSecret implements Serializable {
     @ExcelField(order = 3, columnName = "过期时间", datePattern = "yyyy年MM月dd日")
     private Date expiredDate;
 
-    @ExcelField(order = 5, columnName = "使用情况",convertType = UsedTypeConverter.class)
+    @ExcelField(order = 5, columnName = "使用情况", convertType = UsedTypeConverter.class)
     private Boolean used;
+
 
     public Map<String, String> map;
 
     public CardSecret() {
     }
 
-    public CardSecret(Integer cardType, String secret, BigDecimal amount, boolean used) {
+    public CardSecret(Integer cardType, String secret, BigDecimal amount,
+            boolean used) {
         this.cardType = cardType;
         this.secret = secret;
         this.amount = amount;
@@ -89,13 +94,8 @@ public class CardSecret implements Serializable {
 
     @Override
     public String toString() {
-        return "CardSecret{" +
-                "cardType=" + cardType +
-                ", secret='" + secret + '\'' +
-                ", amount=" + amount +
-                ", expiredDate=" + expiredDate +
-                ", used=" + used +
-                '}';
+        return "CardSecret{" + "cardType=" + cardType + ", secret='" + secret + '\'' + ", amount="
+                + amount + ", expiredDate=" + expiredDate + ", used=" + used + '}';
     }
 
     public Map<String, String> getMap() {
@@ -105,4 +105,5 @@ public class CardSecret implements Serializable {
     public void setMap(Map<String, String> map) {
         this.map = map;
     }
+
 }
