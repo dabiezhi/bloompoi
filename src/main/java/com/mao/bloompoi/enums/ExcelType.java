@@ -1,7 +1,10 @@
 package com.mao.bloompoi.enums;
 
 /**
- * Created by mao on 2018/2/14.
+ * Excel扩展类型
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public enum ExcelType {
 

@@ -1,16 +1,15 @@
 package com.mao.bloompoi.utils;
 
 /**
- * Created by mao on 2018/2/14.
+ * Pair
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class Pair<K,V> {
 
     private K k;
     private V v;
-
-    public Pair(){
-
-    }
 
     public Pair(K k, V v) {
         this.k = k;

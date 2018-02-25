@@ -17,6 +17,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.mao.bloompoi.Constant.EMPTY_STRING;
+import static com.mao.bloompoi.Constant.LEFT_BRACE;
+import static com.mao.bloompoi.Constant.RIGHT_BRACE;
 
 /**
  * Created by mao on 2018/2/14.
@@ -103,66 +105,68 @@ public class ExcelUtils {
             return null;
         }
         ExcelField excelField = field.getAnnotation(ExcelField.class);
-        if (value == null || StringUtils.isNotBlank(value) && excelField.nullable()) {
-            return excelField.columnName() + "不能为空";
+        if (StringUtils.isBlank(value) && !excelField.nullable()) {
+            return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不能为空";
         }
         if (value.length() > excelField.maxLength() && excelField.maxLength() != 0) {
-            return excelField.columnName() + "长度不能超过" + excelField.maxLength();
+            return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "长度不能超过"
+                    + excelField.maxLength();
         }
         if (value.length() < excelField.minLength() && excelField.minLength() != 0) {
-            return excelField.columnName() + "长度不能小于" + excelField.minLength();
+            return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "长度不能小于"
+                    + excelField.minLength();
         }
         switch (excelField.regexType()) {
         case NONE:
             break;
         case SPECIALCHAR:
             if (RegexUtils.hasSpecialChar(value)) {
-                return excelField.columnName() + "不能含有特殊字符";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不能含有特殊字符";
             }
             break;
         case CHINESE:
             if (RegexUtils.isChinese2(value)) {
-                return excelField.columnName() + "不能含有中文字符";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不能含有中文字符";
             }
             break;
         case EMAIL:
             if (!RegexUtils.isEmail(value)) {
-                return excelField.columnName() + "地址格式不正确";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "地址格式不正确";
             }
             break;
         case IP:
             if (!RegexUtils.isIp(value)) {
-                return excelField.columnName() + "IP地址格式不正确";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "IP地址格式不正确";
             }
             break;
         case NUMBER:
             if (!RegexUtils.isNumber(value)) {
-                return excelField.columnName() + "不是数字";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是数字";
             }
             break;
         case PHONENUMBER:
             if (!RegexUtils.isPhoneNumber(value)) {
-                return excelField.columnName() + "不是正规手机号";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是正规手机号";
             }
             break;
         case DATE1:
             if (!RegexUtils.isValidDate(value, "yyyy.MM.dd")) {
-                return excelField.columnName() + "不是正规日期格式";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是正规日期格式";
             }
             break;
         case DATE2:
             if (!RegexUtils.isValidDate(value, "yyyy.MM.dd HH:mm")) {
-                return excelField.columnName() + "不是正规日期格式";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是正规日期格式";
             }
             break;
         case IDENTITYCARD:
             if (!RegexUtils.isIdentifyCard(value)) {
-                return excelField.columnName() + "不是正规身份证格式";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是正规身份证格式";
             }
             break;
         case DOUBLE:
             if (!RegexUtils.isDouble(value)) {
-                return excelField.columnName() + "不是浮点格式";
+                return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "不是浮点格式";
             }
             break;
         default:
@@ -171,7 +175,7 @@ public class ExcelUtils {
 
         if (StringUtils.isNotBlank(excelField.regexExpression())
                 && value.matches(excelField.regexExpression())) {
-            return excelField.columnName() + "格式不正确";
+            return excelField.columnName() + LEFT_BRACE + value + RIGHT_BRACE + "格式不正确";
         }
         return null;
     }

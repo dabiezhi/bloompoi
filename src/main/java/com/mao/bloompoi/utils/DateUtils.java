@@ -8,10 +8,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 /**
- * Date format utils
+ * 日期格式化工具类
  *
- * @author biezhi
- * @date 2018/2/5
+ * @author bloom
+ * @date 2018/2/25
  */
 public final class DateUtils {
 
@@ -45,6 +45,5 @@ public final class DateUtils {
     public static String toString(LocalDateTime value, String pattern) {
         return value.format(DateTimeFormatter.ofPattern(pattern));
     }
-
 
 }

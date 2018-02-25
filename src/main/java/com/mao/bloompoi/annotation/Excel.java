@@ -7,7 +7,12 @@ import java.lang.annotation.Target;
 
 import static com.mao.bloompoi.Constant.SHEET_ZERO;
 
-
+/**
+ * 模型excel字段绑定
+ *
+ * @author bloom
+ * @date 2018/225
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface Excel {

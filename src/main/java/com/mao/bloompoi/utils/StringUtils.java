@@ -1,7 +1,10 @@
 package com.mao.bloompoi.utils;
 
 /**
- * Created by mao on 2018/2/14.
+ * 字符串工具类
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class StringUtils {
 

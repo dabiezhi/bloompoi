@@ -4,16 +4,34 @@ import com.mao.bloompoi.Constant;
 import com.mao.bloompoi.annotation.ExcelField;
 import com.mao.bloompoi.enums.ExcelType;
 import com.mao.bloompoi.exception.ExcelException;
+import com.mao.bloompoi.reader.ValidResult;
 import com.mao.bloompoi.utils.ExcelUtils;
 import com.mao.bloompoi.utils.ReflectUtils;
 import com.mao.bloompoi.utils.StringUtils;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.poi.hssf.usermodel.HSSFClientAnchor;
+import org.apache.poi.hssf.usermodel.HSSFComment;
 import org.apache.poi.hssf.usermodel.HSSFPatriarch;
+import org.apache.poi.hssf.usermodel.HSSFRichTextString;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.sl.usermodel.ShapeType;
-import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.apache.poi.ss.util.CellRangeAddress;
+import org.apache.poi.ss.util.CellUtil;
 import org.apache.poi.xssf.usermodel.XSSFClientAnchor;
+import org.apache.poi.xssf.usermodel.XSSFComment;
+import org.apache.poi.xssf.usermodel.XSSFDrawing;
+import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.apache.poi.xssf.usermodel.XSSFSimpleShape;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.expression.EvaluationContext;
@@ -22,26 +40,34 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Created by mao on 2018/2/14.
  */
 public interface ExcelWriter extends Constant {
 
-    public static final Map<String, List> LIST_CACHE = new HashMap<>(8);
+    public static Map<String, List> LIST_CACHE = new HashMap<>(8);
 
     default <T> void export(Exporter<T> exporter, OutputStream outputStream) throws ExcelException {
         Collection<T> data = exporter.getData();
-        if (null == data || data.size() == 0) {
+        if (CollectionUtils.isEmpty(data)) {
             throw new ExcelException("Export excel data is empty.");
         }
-        try {
+
+        try (Workbook workbook = createWork(exporter)) {
             Sheet sheet;
-            Workbook workbook;
             CellStyle headerStyle = null;
             CellStyle columnStyle = null;
             CellStyle titleStyle = null;
@@ -49,17 +75,15 @@ public interface ExcelWriter extends Constant {
             T data0 = data.iterator().next();
             // Set Excel header
             Iterator<T> iterator = data.iterator();
-            Map<String, Integer> writeFieldNames = ExcelUtils.getFieldNameAndColMap(data0.getClass());
+            Map<String, Integer> writeFieldNames = ExcelUtils
+                    .getFieldNameAndColMap(data0.getClass());
 
             int startRow = exporter.startRow();
 
             if (StringUtils.isNotBlank(exporter.getTemplatePath())) {
-                InputStream in = ExcelWriter.class.getClassLoader().getResourceAsStream(exporter.getTemplatePath());
-                workbook = WorkbookFactory.create(in);
                 sheet = workbook.getSheetAt(0);
                 columnStyle = this.defaultColumnStyle(workbook);
             } else {
-                workbook = exporter.getExcelType().equals(ExcelType.XLSX) ? new XSSFWorkbook() : new HSSFWorkbook();
                 sheet = workbook.createSheet(ExcelUtils.getSheetName(data0));
 
                 if (null != exporter.getTitleStyle()) {
@@ -84,7 +108,8 @@ public interface ExcelWriter extends Constant {
                 int colIndex = 0;
                 if (null != headerTitle) {
                     colIndex = 1;
-                    this.writeTitleRow(titleStyle, sheet, headerTitle, writeFieldNames.keySet().size());
+                    this.writeTitleRow(titleStyle, sheet, headerTitle,
+                            writeFieldNames.keySet().size());
                 }
                 this.writeColumnNames(colIndex, headerStyle, sheet, writeFieldNames);
                 startRow += colIndex;
@@ -102,6 +127,21 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    default <T> Workbook createWork(Exporter<T> exporter)
+            throws IOException, InvalidFormatException {
+        if (StringUtils.isNotBlank(exporter.getTemplatePath())) {
+            InputStream in = ExcelWriter.class.getClassLoader()
+                    .getResourceAsStream(exporter.getTemplatePath());
+            if (null==in){
+                in = new FileInputStream(exporter.getTemplatePath());
+            }
+            return WorkbookFactory.create(in);
+        } else {
+            return exporter.getExcelType().equals(ExcelType.XLSX) ? new XSSFWorkbook()
+                    : new HSSFWorkbook();
+        }
+    }
+
     default void writeTitleRow(CellStyle cellStyle, Sheet sheet, String title, int maxColIndex) {
         Row titleRow = sheet.createRow(0);
         for (int i = 0; i <= maxColIndex; i++) {
@@ -114,7 +154,8 @@ public interface ExcelWriter extends Constant {
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, maxColIndex));
     }
 
-    default void writeColumnNames(int rowIndex, CellStyle headerStyle, Sheet sheet, Map<String, Integer> columnNames) {
+    default void writeColumnNames(int rowIndex, CellStyle headerStyle, Sheet sheet,
+            Map<String, Integer> columnNames) {
         Row rowHead = sheet.createRow(rowIndex);
         columnNames.forEach((k, v) -> {
             Cell cell = rowHead.createCell(v);
@@ -125,7 +166,8 @@ public interface ExcelWriter extends Constant {
         });
     }
 
-    default <T> void writeRows(Sheet sheet, CellStyle columnStyle, Iterator<T> iterator, Map<String, Integer> writeFieldNames, int startRow) {
+    default <T> void writeRows(Sheet sheet, CellStyle columnStyle, Iterator<T> iterator,
+            Map<String, Integer> writeFieldNames, int startRow) {
         for (int rowNum = startRow; iterator.hasNext(); rowNum++) {
             T item = iterator.next();
             Row row = sheet.createRow(rowNum);
@@ -183,11 +225,11 @@ public interface ExcelWriter extends Constant {
         }
     }
 
-    default <T> void exportBySpel(Exporter<T> exporter, OutputStream outputStream) throws ExcelException {
-        try {
-            Workbook workbook = null;
-            InputStream in = new FileInputStream(exporter.getTemplatePath());
-            workbook = WorkbookFactory.create(in);
+    default <T> void exportBySpel(Exporter<T> exporter, OutputStream outputStream)
+            throws ExcelException {
+        InputStream in = ExcelWriter.class.getClassLoader()
+                .getResourceAsStream(exporter.getTemplatePath());
+        try (Workbook workbook = createWork(exporter)) {
             for (Integer i : exporter.getDataMap().keySet()) {
                 getSheetAt(workbook, exporter.getDataMap().get(i), i);
             }
@@ -232,13 +274,13 @@ public interface ExcelWriter extends Constant {
                         c.setCellStyle(this.defaultColumnStyle(workbook));
                         c.setCellValue(parser
                                 .parseExpression(
-                                        String.format(value, j)
-                                                .substring(value.indexOf(POUND)))
+                                        String.format(value, j).substring(value.indexOf(POUND)))
                                 .getValue(context, String.class));
                     }
                     i += list.size() - 1;
                     specialNum += list.size() - 1;
-                    specialRow = Integer.valueOf(value.substring(value.indexOf(LEFT_BRACE) + 1, value.indexOf(RIGHT_BRACE))) + 1;
+                    specialRow = Integer.valueOf(value.substring(value.indexOf(LEFT_BRACE) + 1,
+                            value.indexOf(RIGHT_BRACE))) + 1;
                 }
 
                 if (value.contains(EXCEL_VERTICAL_LIST_ANNOTATION)) {
@@ -247,22 +289,21 @@ public interface ExcelWriter extends Constant {
                         cell = getVerticalValueByList(sheet, row, rowMap, i, j);
                         cell.setCellValue(parser
                                 .parseExpression(
-                                        String.format(value, j)
-                                                .substring(value.indexOf(POUND)))
+                                        String.format(value, j).substring(value.indexOf(POUND)))
                                 .getValue(context, String.class));
                     }
                 }
                 if (-1 != specialRow && row.getRowNum() >= specialRow && specialIndex <= i) {
-                    specialValue = specialValue.equals(Constant.EMPTY_STRING) ? value : specialValue;
+                    specialValue = specialValue.equals(Constant.EMPTY_STRING) ? value
+                            : specialValue;
                     List list = getListByReflect(cell, specialValue, obj);
                     for (int j = 0; j < list.size(); j++) {
                         cell = getVerticalValueByList(sheet, row, rowMap, i, j);
                         Cell titleCell = sheet.getRow(specialRow - 1).getCell(i);
                         String titleValue = ExcelUtils.getCellValue(titleCell);
                         cell.setCellValue(String.valueOf(parser
-                                .parseExpression(
-                                        String.format(specialValue, 0, titleValue)
-                                                .substring(specialValue.indexOf(POUND)))
+                                .parseExpression(String.format(specialValue, 0, titleValue)
+                                        .substring(specialValue.indexOf(POUND)))
                                 .getValue(context)));
                     }
                 }
@@ -270,17 +311,15 @@ public interface ExcelWriter extends Constant {
         }
     }
 
-    default List getListByReflect(Cell cell, String value, Object obj) {
-        if (StringUtils.isBlank(value)) {
+    default List getListByReflect(Cell cell, String val, Object obj) {
+        if (StringUtils.isBlank(val)) {
             return Collections.emptyList();
         }
-        value = value.substring(value.indexOf(LEFT_BRACKET) + 1,
-                value.indexOf(RIGHT_BRACKET));
+        String value = val.substring(val.indexOf(LEFT_BRACKET) + 1, val.indexOf(RIGHT_BRACKET));
         List list = LIST_CACHE.get(value);
         list = Optional.ofNullable(list).orElse(new ArrayList());
         if (CollectionUtils.isEmpty(list)) {
-            list = (List) ReflectUtils.getFieldValueByName(value,
-                    obj);
+            list = (List) ReflectUtils.getFieldValueByName(value, obj);
             LIST_CACHE.put(value, list);
         }
         clearAnnotationLogo(list, cell);
@@ -288,7 +327,7 @@ public interface ExcelWriter extends Constant {
     }
 
     default Cell getVerticalValueByList(Sheet sheet, Row row, Map<Integer, Row> rowMap,
-                                        int colIndex, int rowIndex) {
+            int colIndex, int rowIndex) {
         Cell cell = row.getCell(colIndex);
         if (rowIndex != 0) {
             Row rowCopy = (null == rowMap.get(row.getRowNum() + rowIndex))
@@ -306,21 +345,92 @@ public interface ExcelWriter extends Constant {
         }
     }
 
-    default void getSheetAtSplit(Cell cell, ExpressionParser parser,
-                                 EvaluationContext context, String value, String modelLogo) {
+    default void getSheetAtSplit(Cell cell, ExpressionParser parser, EvaluationContext context,
+            String value, String modelLogo) {
         if (null != cell && value.contains(modelLogo)) {
-            cell.setCellValue(
-                    parser.parseExpression(value.substring(value.indexOf(POUND)))
-                            .getValue(context, String.class));
+            cell.setCellValue(parser.parseExpression(value.substring(value.indexOf(POUND)))
+                    .getValue(context, String.class));
         }
     }
 
-    default Boolean checkSpecicalRow(Row row, String specialValue) {
-        return row.getRowNum() == Integer.valueOf(specialValue.substring(specialValue.indexOf(LEFT_BRACE) + 1,
-                specialValue.indexOf(RIGHT_BRACE)));
+    default <T> void exportByResult(Exporter<T> exporter, OutputStream outputStream)
+            throws ExcelException {
+        try (Workbook workbook = createWork(exporter)) {
+            // 定义异常单元格前景色
+            Map<String, Object> properties = new HashMap<>();
+            properties.put(CellUtil.FILL_FOREGROUND_COLOR, IndexedColors.RED.index);
+            properties.put(CellUtil.FILL_PATTERN, FillPatternType.SOLID_FOREGROUND);
+
+            // 标识异常单元格
+            Sheet sheet = workbook.getSheetAt(0);
+            for (ValidResult item : exporter.getResults()) {
+                Integer rowNum = null == item.getRowNum() ? 0 : item.getRowNum();
+                Row row = sheet.getRow(rowNum);
+                Integer colNum = null == item.getColNum() ? row.getLastCellNum() + 1
+                        : item.getColNum();
+                Cell cell = row.getCell(colNum);
+                if (null == cell) {
+                    cell = row.createCell(colNum);
+                }
+                // 改变样式，避免影响其他单元格样式，使用CellUtil
+                CellUtil.setCellStyleProperties(cell, properties);
+                if (null == item.getRowNum() || null == item.getColNum()) {
+                    // 增加错误说明
+                    cell.setCellValue(item.getMsg());
+                } else {
+                    // 增加批注错误信息提示
+                    if (ExcelType.XLS.equals(exporter.getExcelType())) {
+                        HSSFComment comment = getHSSFComment(sheet, item);
+                        if (null == cell.getCellComment()) {
+                            cell.setCellComment(comment);
+                        }
+                    } else {
+                        XSSFComment comment = getXSSFDrawing(sheet, item);
+                        if (null == cell.getCellComment()) {
+                            cell.setCellComment(comment);
+                        }
+                    }
+                }
+            }
+            workbook.write(outputStream);
+            outputStream.flush();
+            outputStream.close();
+        } catch (Exception e) {
+            throw new ExcelException(e);
+        }
+    }
+
+    default HSSFComment getHSSFComment(Sheet sheet, ValidResult item) {
+        // 增加批注错误信息提示
+        HSSFPatriarch patriarch = (HSSFPatriarch) sheet.createDrawingPatriarch();
+        // 创建批注位置
+        HSSFClientAnchor anchor = patriarch.createAnchor(0, 0, 0, 0, item.getColNum() + 3,
+                item.getRowNum(), item.getColNum() + 6, item.getRowNum());
+        // 创建批注
+        HSSFComment comment = patriarch.createCellComment(anchor);
+        // 设置批注内容
+        comment.setString(new HSSFRichTextString(item.getMsg()));
+        comment.setVisible(false);
+        return comment;
+    }
+
+    default XSSFComment getXSSFDrawing(Sheet sheet, ValidResult item) {
+        // 增加批注错误信息提示
+        XSSFDrawing patriarch = (XSSFDrawing) sheet.createDrawingPatriarch();
+        // 创建批注位置
+        XSSFClientAnchor anchor = patriarch.createAnchor(0, 0, 0, 0, item.getColNum() + 3,
+                item.getRowNum(), item.getColNum() + 6, item.getRowNum());
+        // 创建批注
+        XSSFComment comment = patriarch.createCellComment(anchor);
+        // 设置批注内容
+        comment.setString(new XSSFRichTextString(item.getMsg()));
+        comment.setVisible(false);
+        return comment;
     }
 
     <T> void export(Exporter<T> exporter) throws ExcelException;
 
     <T> void exportBySpel(Exporter<T> exporter) throws ExcelException;
+
+    <T> void exportByResult(Exporter<T> exporter) throws ExcelException;
 }

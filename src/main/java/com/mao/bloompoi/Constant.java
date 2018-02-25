@@ -31,6 +31,12 @@ public interface Constant {
     String EXCEL_HORIZONTAL_LIST_ANNOTATION = "&h_list";
     String EXCEL_MAP_ANNOTATION = "&map";
 
+    /**
+     * 默认Excel标题样式.
+     *
+     * @param workbook workbook对象
+     * @return Excel标题样式
+     */
     default CellStyle defaultTitleStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
 
@@ -54,10 +60,10 @@ public interface Constant {
     }
 
     /**
-     * The default Excel header style.
+     * 默认Excel行头样式.
      *
-     * @param workbook Excel workbook
-     * @return header row cell style
+     * @param workbook workbook对象
+     * @return Excel行头样式
      */
     default CellStyle defaultHeaderStyle(Workbook workbook) {
         CellStyle headerStyle = workbook.createCellStyle();
@@ -81,10 +87,10 @@ public interface Constant {
     }
 
     /**
-     * The default Excel column style.
+     * 默认单元格样式
      *
-     * @param workbook Excel workbook
-     * @return row column cell style
+     * @param workbook workbook对象
+     * @return 单元格样式
      */
     default CellStyle defaultColumnStyle(Workbook workbook) {
         CellStyle cellStyle = workbook.createCellStyle();

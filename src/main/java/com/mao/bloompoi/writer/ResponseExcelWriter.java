@@ -42,4 +42,18 @@ public class ResponseExcelWriter implements ExcelWriter {
             throw new ExcelException(e);
         }
     }
+
+    @Override
+    public <T> void exportByResult(Exporter<T> exporter) throws ExcelException {
+        HttpServletResponse servletResponse = this.wrapper.getServletResponse();
+        try {
+            String fileName = wrapper.getFileName();
+            servletResponse.setContentType("application/x-xls");
+            fileName = new String(fileName.getBytes("UTF-8"), "ISO8859-1");
+            servletResponse.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+            this.exportByResult(exporter, servletResponse.getOutputStream());
+        } catch (Exception e) {
+            throw new ExcelException(e);
+        }
+    }
 }

@@ -6,9 +6,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 常用的正则表达式
+ * 常用的正则表达是
  *
- * @author tsy
+ * @author bloom
+ * @date 2018/2/25
  */
 public class RegexUtils {
 

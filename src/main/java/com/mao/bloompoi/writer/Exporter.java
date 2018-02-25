@@ -1,10 +1,13 @@
 package com.mao.bloompoi.writer;
 
 import com.mao.bloompoi.enums.ExcelType;
+import com.mao.bloompoi.reader.ExcelResult;
+import com.mao.bloompoi.reader.ValidResult;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Workbook;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -18,6 +21,7 @@ public class Exporter<T> {
     private ExcelType excelType;
     private Collection<T> data;
     private Map<Integer, Object> dataMap;
+    private List<ValidResult> results;
     private int startRow = 1;
 
     private Function<Workbook, CellStyle> titleStyle;
@@ -27,6 +31,12 @@ public class Exporter<T> {
     public static <T> Exporter<T> create(Collection<T> data) {
         Exporter<T> exporter = new Exporter<>();
         exporter.setData(data);
+        return exporter;
+    }
+
+    public static <T> Exporter<T> create(List<ValidResult> results) {
+        Exporter<T> exporter = new Exporter<>();
+        exporter.setResults(results);
         return exporter;
     }
 
@@ -48,6 +58,11 @@ public class Exporter<T> {
 
     public Exporter<T> startRow(int startRow) {
         this.startRow = startRow;
+        return this;
+    }
+
+    public Exporter<T> results(List<ValidResult> results) {
+        this.results = results;
         return this;
     }
 
@@ -125,5 +140,13 @@ public class Exporter<T> {
 
     public void setColumnStyle(Function<Workbook, CellStyle> columnStyle) {
         this.columnStyle = columnStyle;
+    }
+
+    public List<ValidResult> getResults() {
+        return results;
+    }
+
+    public void setResults(List<ValidResult> results) {
+        this.results = results;
     }
 }

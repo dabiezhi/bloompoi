@@ -1,9 +1,10 @@
 package com.mao.bloompoi.exception;
 
-import com.mao.bloompoi.writer.Exporter;
-
 /**
- * Created by mao on 2018/2/14.
+ * Excel读写异常
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ExcelException extends Exception{
 

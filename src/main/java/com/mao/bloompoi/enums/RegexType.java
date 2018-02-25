@@ -1,8 +1,10 @@
 package com.mao.bloompoi.enums;
 
 /**
- * 常用的数据类型枚举
- * @author tsy
+ * Excel常用数据类型校验枚举
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public enum RegexType {
 

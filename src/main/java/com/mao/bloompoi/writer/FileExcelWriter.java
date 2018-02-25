@@ -44,4 +44,18 @@ public class FileExcelWriter implements ExcelWriter {
             throw new ExcelException(e);
         }
     }
+
+    @Override
+    public <T> void exportByResult(Exporter<T> exporter) throws ExcelException {
+        if (null == savePath) {
+            throw new ExcelException("Save the Excel path can not be null.");
+        }
+        try {
+            ExcelType excelType = ExcelType.getExcelType(savePath.getName());
+            exporter.setExcelType(excelType);
+            this.exportByResult(exporter, new FileOutputStream(savePath));
+        } catch (Exception e) {
+            throw new ExcelException(e);
+        }
+    }
 }

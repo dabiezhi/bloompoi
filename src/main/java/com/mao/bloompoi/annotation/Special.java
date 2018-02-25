@@ -1,28 +1,36 @@
 package com.mao.bloompoi.annotation;
 
-import com.mao.bloompoi.Constant;
-import com.mao.bloompoi.conterver.Converter;
-import com.mao.bloompoi.conterver.EmptyConverter;
-import com.mao.bloompoi.enums.RegexType;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-import static com.mao.bloompoi.Constant.EMPTY_STRING;
-import static com.mao.bloompoi.Constant.SHEET_ZERO;
-
 /**
- * Created by mao on 2018/2/14.
+ * 模型excel特殊字段绑定(针对水平顺序读取的字段)
+ * 例: name:bloom address:hangzhou
+ *
+ * @author bloom
+ * @date 2018/225
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface Special {
 
+    /**
+     * 是否为特殊字段,默认false
+     * @return true/false
+     */
     boolean isSpecial() default false;
 
+    /**
+     * 特殊字段列号
+     * @return 列号
+     */
     int specialColNum() default -1;
 
+    /**
+     * 特殊字段行号
+     * @return 行号
+     */
     int specialRowNum() default -1;
 }

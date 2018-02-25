@@ -3,9 +3,10 @@ package com.mao.bloompoi.utils;
 import java.lang.reflect.Method;
 
 /**
- * 常用的正则表达式
+ * 反射工具类
  *
- * @author tsy
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ReflectUtils {
 
@@ -13,8 +14,10 @@ public class ReflectUtils {
     }
 
     /**
+     * 根据属性名获取属性值
+     *
      * @param fieldName 属性名
-     * @param o         对象 根据属性名获取属性值
+     * @param o 对象
      * @return 对象
      */
     public static Object getFieldValueByName(String fieldName, Object o) {

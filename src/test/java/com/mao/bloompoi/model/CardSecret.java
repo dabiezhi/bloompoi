@@ -18,11 +18,11 @@ import java.util.Map;
 @Excel
 public class CardSecret extends ImportModel implements Serializable {
 
-    @ExcelField(columnName = "姓名",
+    @ExcelField(columnName = "姓名", maxLength = 3,
             special = @Special(isSpecial = true, specialColNum = 1, specialRowNum = 0))
     private String name;
 
-    @ExcelField(order = 0, columnName = "运营商")
+    @ExcelField(order = 0, columnName = "运营商", maxLength = 3)
     private Integer cardType;
 
     @ExcelField(order = 1, columnName = "卡密")
@@ -113,4 +113,5 @@ public class CardSecret extends ImportModel implements Serializable {
     public void setName(String name) {
         this.name = name;
     }
+
 }

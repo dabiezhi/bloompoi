@@ -3,9 +3,10 @@ package com.mao.bloompoi.model;
 import com.mao.bloompoi.annotation.ExcelField;
 
 /**
- * @author tsy
- * @Description
- * @date 17:13 2018/2/24
+ * Excel导入model(用于存入一些特殊属性)
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ImportModel {
 
