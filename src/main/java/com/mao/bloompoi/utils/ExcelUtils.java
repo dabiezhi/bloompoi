@@ -45,12 +45,29 @@ public class ExcelUtils {
         return EMPTY_STRING;
     }
 
-    public static Map<String, Integer> getWriteFieldNames(Class<?> type) {
+    public static Map<String, Integer> getFieldNameAndColMap(Class<?> type) {
+        List<Field> fields = getAndSaveFields(type);
+        Map<String, Integer> map = new HashMap<>();
+        fields.stream().filter(u -> -999 != u.getAnnotation(ExcelField.class).order())
+                .forEach(field -> {
+                    ExcelField excelField = field.getAnnotation(ExcelField.class);
+                    if (excelField.special().isSpecial()) {
+                        map.put(excelField.columnName(), excelField.special().specialColNum());
+                    } else {
+                        map.put(excelField.columnName(), excelField.order());
+                    }
+                });
+        return map;
+    }
+
+    public static Map<String, Integer> getSpecialFieldNameAndRowMap(Class<?> type) {
         List<Field> fields = getAndSaveFields(type);
         Map<String, Integer> map = new HashMap<>();
         fields.forEach(field -> {
             ExcelField excelField = field.getAnnotation(ExcelField.class);
-            map.put(excelField.columnName(), excelField.order());
+            if (excelField.special().isSpecial()) {
+                map.put(excelField.columnName(), excelField.special().specialRowNum());
+            }
         });
         return map;
     }

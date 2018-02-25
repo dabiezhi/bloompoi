@@ -16,6 +16,8 @@ public class ExcelResult<T> {
 
     private Map<String,Integer> colMap= new HashMap<>();
 
+    private Map<String,Integer> specRowMap=new HashMap<>();
+
     void addValidResult(ValidResult result) {
         validResults.add(result);
     }
@@ -38,5 +40,13 @@ public class ExcelResult<T> {
 
     public void setColMap(Map<String, Integer> colMap) {
         this.colMap = colMap;
+    }
+
+    public Map<String, Integer> getSpecRowMap() {
+        return specRowMap;
+    }
+
+    public void setSpecRowMap(Map<String, Integer> specRowMap) {
+        this.specRowMap = specRowMap;
     }
 }

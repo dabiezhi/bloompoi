@@ -49,7 +49,7 @@ public interface ExcelWriter extends Constant {
             T data0 = data.iterator().next();
             // Set Excel header
             Iterator<T> iterator = data.iterator();
-            Map<String, Integer> writeFieldNames = ExcelUtils.getWriteFieldNames(data0.getClass());
+            Map<String, Integer> writeFieldNames = ExcelUtils.getFieldNameAndColMap(data0.getClass());
 
             int startRow = exporter.startRow();
 

@@ -18,9 +18,9 @@ import java.util.Map;
 @Excel
 public class CardSecret extends ImportModel implements Serializable {
 
-//    @ExcelField(columnName = "姓名",
-//            special = @Special(isSpecial = true, specialColNum = 1, specialRowNum = 0))
-//    private String name;
+    @ExcelField(columnName = "姓名",
+            special = @Special(isSpecial = true, specialColNum = 1, specialRowNum = 0))
+    private String name;
 
     @ExcelField(order = 0, columnName = "运营商")
     private Integer cardType;
@@ -37,14 +37,14 @@ public class CardSecret extends ImportModel implements Serializable {
     @ExcelField(order = 5, columnName = "使用情况", convertType = UsedTypeConverter.class)
     private Boolean used;
 
-
     public Map<String, String> map;
 
     public CardSecret() {
     }
 
-    public CardSecret(Integer cardType, String secret, BigDecimal amount,
+    public CardSecret(String name, Integer cardType, String secret, BigDecimal amount,
             boolean used) {
+        this.name = name;
         this.cardType = cardType;
         this.secret = secret;
         this.amount = amount;
@@ -106,4 +106,11 @@ public class CardSecret extends ImportModel implements Serializable {
         this.map = map;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 }

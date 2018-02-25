@@ -28,18 +28,21 @@ public class ExcelReader<T> {
     private Function<T, ValidResult> validFunction;
     private ExcelResult<T> excelResult = new ExcelResult<>();
     private Map<String, Integer> colMap = new HashMap<>();
+    private Map<String, Integer> specRowMap = new HashMap<>();
     private Map<String, String> specialValueMap = new HashMap<>();
 
     public ExcelReader(Workbook workbook, Class<T> type) {
         this.workbook = workbook;
         this.type = type;
-        colMap = ExcelUtils.getWriteFieldNames(type);
+        colMap = ExcelUtils.getFieldNameAndColMap(type);
+        specRowMap = ExcelUtils.getSpecialFieldNameAndRowMap(type);
     }
 
     public ExcelResult<T> asResult() {
         List<T> rows = this.asStream().map(Pair::getV).collect(Collectors.toList());
         this.excelResult.setRows(rows);
         this.excelResult.setColMap(colMap);
+        this.excelResult.setSpecRowMap(specRowMap);
         return this.excelResult;
     }
 
@@ -92,7 +95,8 @@ public class ExcelReader<T> {
         specialValueMap.forEach((k, v) -> ExcelUtils.writeToField(item,
                 Integer.valueOf(k.substring(0, k.indexOf(Constant.UNDERLINE))),
                 Integer.valueOf(k.substring(k.indexOf(Constant.UNDERLINE) + 1)), v, Boolean.TRUE));
-        ExcelUtils.writeToField(item, row.getRowNum(), -999, String.valueOf(row.getRowNum()), Boolean.FALSE);
+        ExcelUtils.writeToField(item, row.getRowNum(), -999, String.valueOf(row.getRowNum()),
+                Boolean.FALSE);
         return item;
     }
 
