@@ -1,14 +1,26 @@
 package com.mao.bloompoi.reader;
 
 /**
- * Created by mao on 2018/2/16.
+ * Excel基础数据校验结果
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ValidResult {
 
+    /**
+     * 行号
+     */
     private Integer rowNum;
 
+    /**
+     * 列号
+     */
     private Integer colNum;
 
+    /**
+     * 基础数据校验信息
+     */
     private String msg;
 
     public ValidResult(Integer rowNum, Integer colNum, String msg) {

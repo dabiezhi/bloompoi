@@ -37,14 +37,14 @@ public class Examples {
     @Test
     public void testReadResult() throws ExcelException {
         ExcelResult<CardSecret> excelResult = Bloom.me()
-                .read(new File("D:\\卡密列表2.xls"), CardSecret.class).startRow(2).asResult();
+                .read(new File("D:\\卡密列表.xls"), CardSecret.class).startRow(1).asResult();
         System.out.println(excelResult);
     }
 
     @Test
     public void testExport() throws ExcelException {
         List<CardSecret> cardSecrets = this.buildCardSecrets();
-        Bloom.me().export(cardSecrets).writeAsFile(new File("D:\\卡密列表2.xls"));
+        Bloom.me().export(cardSecrets).writeAsFile(new File("D:\\卡密列表.xls"));
     }
 
     @Test

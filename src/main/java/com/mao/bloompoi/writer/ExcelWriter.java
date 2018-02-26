@@ -54,12 +54,23 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Created by mao on 2018/2/14.
+ * 数据写入Excel接口
+ *
+ * @author bloom
+ * @date 2018/2/4
  */
 public interface ExcelWriter extends Constant {
 
     public static Map<String, List> LIST_CACHE = new HashMap<>(8);
 
+    /**
+     * 默认的导出方法
+     *
+     * @param exporter Exporter对象
+     * @param outputStream 输出流
+     * @param <T> Java类型
+     * @throws ExcelException Excel异常
+     */
     default <T> void export(Exporter<T> exporter, OutputStream outputStream) throws ExcelException {
         Collection<T> data = exporter.getData();
         if (CollectionUtils.isEmpty(data)) {
@@ -75,14 +86,17 @@ public interface ExcelWriter extends Constant {
             T data0 = data.iterator().next();
             // Set Excel header
             Iterator<T> iterator = data.iterator();
+            // 获取列名-列号的关系映射
             Map<String, Integer> writeFieldNames = ExcelUtils
                     .getFieldNameAndColMap(data0.getClass());
-
+            // 开始行
             int startRow = exporter.startRow();
-
+            // 区分俩种情况 1-通过模板 2-自动生成
             if (StringUtils.isNotBlank(exporter.getTemplatePath())) {
                 sheet = workbook.getSheetAt(0);
                 columnStyle = this.defaultColumnStyle(workbook);
+                // 删除Excel模板中的图形，文本框
+                clearShape(sheet, exporter.getExcelType());
             } else {
                 sheet = workbook.createSheet(ExcelUtils.getSheetName(data0));
 
@@ -108,14 +122,12 @@ public interface ExcelWriter extends Constant {
                 int colIndex = 0;
                 if (null != headerTitle) {
                     colIndex = 1;
-                    this.writeTitleRow(titleStyle, sheet, headerTitle,
+                    this.writeTitleRow(headerStyle, sheet, headerTitle,
                             writeFieldNames.keySet().size());
                 }
-                this.writeColumnNames(colIndex, headerStyle, sheet, writeFieldNames);
+                this.writeColumnNames(colIndex, titleStyle, sheet, writeFieldNames);
                 startRow += colIndex;
             }
-
-            clearShape(sheet, exporter.getExcelType());
 
             this.writeRows(sheet, columnStyle, iterator, writeFieldNames, startRow);
 
@@ -127,21 +139,40 @@ public interface ExcelWriter extends Constant {
         }
     }
 
-    default <T> Workbook createWork(Exporter<T> exporter)
-            throws IOException, InvalidFormatException {
-        if (StringUtils.isNotBlank(exporter.getTemplatePath())) {
-            InputStream in = ExcelWriter.class.getClassLoader()
-                    .getResourceAsStream(exporter.getTemplatePath());
-            if (null==in){
-                in = new FileInputStream(exporter.getTemplatePath());
+    /**
+     * 创建Workbook对象
+     *
+     * @param exporter Exporter对象
+     * @param <T> Java类型
+     * @throws ExcelException Excel异常
+     * @return
+     */
+    default <T> Workbook createWork(Exporter<T> exporter) throws ExcelException {
+        try {
+            if (StringUtils.isNotBlank(exporter.getTemplatePath())) {
+                InputStream in = ExcelWriter.class.getClassLoader()
+                        .getResourceAsStream(exporter.getTemplatePath());
+                if (null == in) {
+                    in = new FileInputStream(exporter.getTemplatePath());
+                }
+                return WorkbookFactory.create(in);
+            } else {
+                return exporter.getExcelType().equals(ExcelType.XLSX) ? new XSSFWorkbook()
+                        : new HSSFWorkbook();
             }
-            return WorkbookFactory.create(in);
-        } else {
-            return exporter.getExcelType().equals(ExcelType.XLSX) ? new XSSFWorkbook()
-                    : new HSSFWorkbook();
+        } catch (Exception e) {
+            throw new ExcelException(e);
         }
     }
 
+    /**
+     * 生成标题头行
+     *
+     * @param cellStyle 单元格样式
+     * @param sheet sheet对象
+     * @param title 标题名称
+     * @param maxColIndex 标题占的最大列号
+     */
     default void writeTitleRow(CellStyle cellStyle, Sheet sheet, String title, int maxColIndex) {
         Row titleRow = sheet.createRow(0);
         for (int i = 0; i <= maxColIndex; i++) {
@@ -154,18 +185,36 @@ public interface ExcelWriter extends Constant {
         sheet.addMergedRegion(new CellRangeAddress(0, 0, 0, maxColIndex));
     }
 
-    default void writeColumnNames(int rowIndex, CellStyle headerStyle, Sheet sheet,
+    /**
+     * 生成标题行
+     *
+     * @param rowIndex 行号
+     * @param cellStyle 单元格样式
+     * @param sheet sheet对象
+     * @param columnNames 获取列名-列号的关系映射
+     */
+    default void writeColumnNames(int rowIndex, CellStyle cellStyle, Sheet sheet,
             Map<String, Integer> columnNames) {
         Row rowHead = sheet.createRow(rowIndex);
         columnNames.forEach((k, v) -> {
             Cell cell = rowHead.createCell(v);
-            if (null != headerStyle) {
-                cell.setCellStyle(headerStyle);
+            if (null != cellStyle) {
+                cell.setCellStyle(cellStyle);
             }
             cell.setCellValue(k);
         });
     }
 
+    /**
+     * 写入行数据
+     *
+     * @param sheet sheet对象
+     * @param columnStyle 单元格样式
+     * @param iterator 行迭代器
+     * @param writeFieldNames 获取列名-列号的关系映射
+     * @param startRow 开始行
+     * @param <T> Java类型
+     */
     default <T> void writeRows(Sheet sheet, CellStyle columnStyle, Iterator<T> iterator,
             Map<String, Integer> writeFieldNames, int startRow) {
         for (int rowNum = startRow; iterator.hasNext(); rowNum++) {
@@ -187,6 +236,12 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    /**
+     * 删除模板中的图形，文本框
+     *
+     * @param sheet sheet对象
+     * @param excelType 文件类型
+     */
     default void clearShape(Sheet sheet, ExcelType excelType) {
         // 删除模板中的图形，文本框
         if (ExcelType.XLS.equals(excelType)) {
@@ -225,10 +280,16 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+
+    /**
+     * 通过spel表达式解析模板导出Excel
+     * @param exporter Exporter对象
+     * @param outputStream 输出流
+     * @param <T> Java类型
+     * @throws ExcelException Excel异常
+     */
     default <T> void exportBySpel(Exporter<T> exporter, OutputStream outputStream)
             throws ExcelException {
-        InputStream in = ExcelWriter.class.getClassLoader()
-                .getResourceAsStream(exporter.getTemplatePath());
         try (Workbook workbook = createWork(exporter)) {
             for (Integer i : exporter.getDataMap().keySet()) {
                 getSheetAt(workbook, exporter.getDataMap().get(i), i);
@@ -241,6 +302,12 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    /**
+     * 读取Excel数据,通过Spel表达式反向赋值
+     * @param workbook workbook对象
+     * @param obj Java对象
+     * @param index sheet索引
+     */
     default void getSheetAt(Workbook workbook, Object obj, int index) {
         Sheet sheet = workbook.getSheetAt(index);
         Map<Integer, Row> rowMap = new HashMap<>();
@@ -263,8 +330,9 @@ public interface ExcelWriter extends Constant {
                     cell = row.createCell(i);
                 }
                 String value = ExcelUtils.getCellValue(cell);
+                // 如果为普通的model赋值
                 this.getSheetAtSplit(cell, parser, context, value, EXCEL_MODEL_ANNOTATION);
-
+                // 如果为集合水平扩展赋值
                 if (value.contains(EXCEL_HORIZONTAL_LIST_ANNOTATION)) {
                     specialIndex = i;
                     List list = getListByReflect(cell, value, obj);
@@ -282,7 +350,7 @@ public interface ExcelWriter extends Constant {
                     specialRow = Integer.valueOf(value.substring(value.indexOf(LEFT_BRACE) + 1,
                             value.indexOf(RIGHT_BRACE))) + 1;
                 }
-
+                // 如果为集合竖直扩展赋值
                 if (value.contains(EXCEL_VERTICAL_LIST_ANNOTATION)) {
                     List list = getListByReflect(cell, value, obj);
                     for (int j = 0; j < list.size(); j++) {
@@ -293,6 +361,7 @@ public interface ExcelWriter extends Constant {
                                 .getValue(context, String.class));
                     }
                 }
+                // 特殊行处理
                 if (-1 != specialRow && row.getRowNum() >= specialRow && specialIndex <= i) {
                     specialValue = specialValue.equals(Constant.EMPTY_STRING) ? value
                             : specialValue;
@@ -311,6 +380,14 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    /**
+     * 利用spel表达式、反射操作获取集合对象n
+     *
+     * @param cell 单元格
+     * @param val 单元格值
+     * @param obj Java对象
+     * @return 集合对象
+     */
     default List getListByReflect(Cell cell, String val, Object obj) {
         if (StringUtils.isBlank(val)) {
             return Collections.emptyList();
@@ -326,6 +403,16 @@ public interface ExcelWriter extends Constant {
         return list;
     }
 
+    /**
+     * 获取单元格对象(集合竖直扩展需要创建单元格对象并赋值)
+     *
+     * @param sheet sheet对象
+     * @param row 行对象
+     * @param rowMap 行关系映射
+     * @param colIndex 列号
+     * @param rowIndex 行号
+     * @return 单元格对象
+     */
     default Cell getVerticalValueByList(Sheet sheet, Row row, Map<Integer, Row> rowMap,
             int colIndex, int rowIndex) {
         Cell cell = row.getCell(colIndex);
@@ -339,12 +426,27 @@ public interface ExcelWriter extends Constant {
         return cell;
     }
 
+    /**
+     * 清空单元格中的Spel表达式
+     *
+     * @param list 集合对象
+     * @param cell 单元格对象
+     */
     default void clearAnnotationLogo(List list, Cell cell) {
         if (CollectionUtils.isEmpty(list)) {
             cell.setCellValue("");
         }
     }
 
+    /**
+     * 若为普通的model赋值,则直接通过Spel表达式赋值
+     *
+     * @param cell 单元格对象
+     * @param parser 对象
+     * @param context 对象
+     * @param value 值
+     * @param modelLogo model处理标识
+     */
     default void getSheetAtSplit(Cell cell, ExpressionParser parser, EvaluationContext context,
             String value, String modelLogo) {
         if (null != cell && value.contains(modelLogo)) {
@@ -353,6 +455,13 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    /**
+     * 导出Excel基础数据的校验结果(错误数据做标红、添加批注处理)
+     * @param exporter Exporter对象
+     * @param outputStream 输出流
+     * @param <T> Java类型
+     * @throws ExcelException Excel异常
+     */
     default <T> void exportByResult(Exporter<T> exporter, OutputStream outputStream)
             throws ExcelException {
         try (Workbook workbook = createWork(exporter)) {
@@ -400,6 +509,13 @@ public interface ExcelWriter extends Constant {
         }
     }
 
+    /**
+     * 添加批注
+     *
+     * @param sheet sheet对象
+     * @param item ValidResult对象
+     * @return HSSFComment对象
+     */
     default HSSFComment getHSSFComment(Sheet sheet, ValidResult item) {
         // 增加批注错误信息提示
         HSSFPatriarch patriarch = (HSSFPatriarch) sheet.createDrawingPatriarch();
@@ -414,6 +530,13 @@ public interface ExcelWriter extends Constant {
         return comment;
     }
 
+    /**
+     * 添加批注
+     *
+     * @param sheet sheet对象
+     * @param item ValidResult对象
+     * @return XSSFComment对象
+     */
     default XSSFComment getXSSFDrawing(Sheet sheet, ValidResult item) {
         // 增加批注错误信息提示
         XSSFDrawing patriarch = (XSSFDrawing) sheet.createDrawingPatriarch();

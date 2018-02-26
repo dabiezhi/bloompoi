@@ -7,7 +7,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 
 /**
- * Created by mao on 2018/2/14.
+ * Write data to Excel file.
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class FileExcelWriter implements ExcelWriter {
 

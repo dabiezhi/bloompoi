@@ -6,16 +6,31 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Created by mao on 2018/2/16.
+ * Excel返回结果
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ExcelResult<T> {
 
+    /**
+     * Excel表中数据校验结果(行-列-校验信息)
+     */
     private List<ValidResult> validResults = new ArrayList<>();
 
+    /**
+     * Excel数据转成对象集合
+     */
     private List<T> rows = new ArrayList<>();
 
+    /**
+     * Excel表列名-列号映射关系
+     */
     private Map<String,Integer> colMap= new HashMap<>();
 
+    /**
+     * Excel表特殊列名-行号映射关系
+     */
     private Map<String,Integer> specRowMap=new HashMap<>();
 
     void addValidResult(ValidResult result) {

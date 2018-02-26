@@ -21,7 +21,10 @@ import static com.mao.bloompoi.Constant.LEFT_BRACE;
 import static com.mao.bloompoi.Constant.RIGHT_BRACE;
 
 /**
- * Created by mao on 2018/2/14.
+ * Excel工具类
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ExcelUtils {
 

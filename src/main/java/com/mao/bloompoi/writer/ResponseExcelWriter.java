@@ -5,7 +5,10 @@ import com.mao.bloompoi.exception.ExcelException;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * Created by mao on 2018/2/15.
+ * ServletResponse出口
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ResponseExcelWriter implements ExcelWriter {
 

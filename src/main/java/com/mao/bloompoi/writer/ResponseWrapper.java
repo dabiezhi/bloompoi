@@ -3,7 +3,10 @@ package com.mao.bloompoi.writer;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * Created by mao on 2018/2/15.
+ * 用于包装HttpServletResponse对象和下载文件名
+ *
+ * @author bloom
+ * @date 2018/2/25
  */
 public class ResponseWrapper {
 

@@ -98,6 +98,12 @@ public class ExcelReader<T> {
         return list.stream();
     }
 
+    /**
+     * 根据行对象反射生成实体对象
+     *
+     * @param row 行对象
+     * @return 实体
+     */
     private T buildItem(Row row) {
         T item = ExcelUtils.newInstance(type);
         if (null == item) {
@@ -108,17 +114,22 @@ public class ExcelReader<T> {
         for (int cellNum = firstCellNum; cellNum < lastCellNum; cellNum++) {
             Cell cell = row.getCell(cellNum);
             String value = ExcelUtils.getCellValue(cell);
+            // 校验数据是否符合自定义标准,返回字符串不为null 则不符合自定义标准
             String validMsg = ExcelUtils.validFieldByAnnotation(item, row.getRowNum(), cellNum,
                     value, Boolean.FALSE);
+            // 该处代码暂无用
             if (null != this.validFunction) {
                 ValidResult validResult = validFunction.apply(item);
                 validMsg = validResult.getMsg();
             }
+            // 如果校验信息不为空,则将错误信息(行号-列号-错误信息)存入到ValidResult对象中
             if (StringUtils.isNotBlank(validMsg)) {
                 excelResult.addValidResult(new ValidResult(row.getRowNum(), cellNum, validMsg));
             }
+            // 根据(行号-列号-值)反射赋值到正确的Field上
             ExcelUtils.writeToField(item, row.getRowNum(), cellNum, value, Boolean.FALSE);
         }
+        // 第一次进入校验特殊字段的特殊值,进行特殊字段校验+特使字段的赋值
         if (flag) {
             specialValueMap.forEach((k, v) -> {
                 Integer rowNum = Integer.valueOf(k.substring(0, k.indexOf(Constant.UNDERLINE)));
@@ -137,6 +148,11 @@ public class ExcelReader<T> {
         return item;
     }
 
+    /**
+     *循环读取行数据，若存在特殊字段，则put到specialValueMap中以便实体中特殊字段反射赋值
+     *
+     * @param sheet sheet对象
+     */
     private void buildSpecialMap(Sheet sheet) {
         for (int i = 0; i < startRowIndex; i++) {
             Map<String, Integer> specialMap = ExcelUtils.getSpecialFieldMap(type);
@@ -158,11 +174,22 @@ public class ExcelReader<T> {
         }
     }
 
+    /**
+     * 该方法暂无用
+     *
+     * @param validFunction function对象
+     * @return ExcelReader对象
+     */
     public ExcelReader<T> valid(Function<T, ValidResult> validFunction) {
         this.validFunction = validFunction;
         return this;
     }
 
+    /**
+     * 设置Excel的开始读取行号
+     * @param startRowIndex 开始读取行号
+     * @return ExcelReader 读取对象
+     */
     public ExcelReader<T> startRow(int startRowIndex) {
         this.startRowIndex = startRowIndex;
         return this;
