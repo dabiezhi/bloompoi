@@ -27,6 +27,7 @@ public interface Constant {
      **/
     String SHEET_ZERO = "sheet0";
     String EXCEL_MODEL_ANNOTATION = "&model";
+    String EXCEL_IMG_ANNOTATION = "&img";
     String EXCEL_VERTICAL_LIST_ANNOTATION = "&v_list";
     String EXCEL_HORIZONTAL_LIST_ANNOTATION = "&h_list";
     String EXCEL_MAP_ANNOTATION = "&map";

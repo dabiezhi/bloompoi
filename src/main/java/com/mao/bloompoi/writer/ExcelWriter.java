@@ -33,15 +33,19 @@ import org.apache.poi.xssf.usermodel.XSSFDrawing;
 import org.apache.poi.xssf.usermodel.XSSFRichTextString;
 import org.apache.poi.xssf.usermodel.XSSFSimpleShape;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,17 +57,19 @@ import java.util.Optional;
 
 /**
  * 数据写入Excel接口
- *
  * @author bloom
  * @date 2018/2/4
  */
 public interface ExcelWriter extends Constant {
 
-    public static Map<String, List> LIST_CACHE = new HashMap<>(8);
+    Map<String, List> LIST_CACHE = new HashMap<>(8);
+    // 使用SPEL进行key的解析
+    ExpressionParser PARSER = new SpelExpressionParser();
+    // SPEL上下文
+    StandardEvaluationContext CONTEXT = new StandardEvaluationContext();
 
     /**
      * 默认的导出方法
-     *
      * @param exporter Exporter对象
      * @param outputStream 输出流
      * @param <T> Java类型
@@ -139,7 +145,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 创建Workbook对象
-     *
      * @param exporter Exporter对象
      * @param <T> Java类型
      * @throws ExcelException Excel异常
@@ -165,7 +170,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 生成标题头行
-     *
      * @param cellStyle 单元格样式
      * @param sheet sheet对象
      * @param title 标题名称
@@ -185,7 +189,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 生成标题行
-     *
      * @param rowIndex 行号
      * @param cellStyle 单元格样式
      * @param sheet sheet对象
@@ -205,7 +208,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 写入行数据
-     *
      * @param sheet sheet对象
      * @param columnStyle 单元格样式
      * @param iterator 行迭代器
@@ -236,7 +238,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 删除模板中的图形，文本框
-     *
      * @param sheet sheet对象
      * @param excelType 文件类型
      */
@@ -278,7 +279,6 @@ public interface ExcelWriter extends Constant {
         }
     }
 
-
     /**
      * 通过spel表达式解析模板导出Excel
      * @param exporter Exporter对象
@@ -306,14 +306,11 @@ public interface ExcelWriter extends Constant {
      * @param obj Java对象
      * @param index sheet索引
      */
-    default void getSheetAt(Workbook workbook, Object obj, int index) {
+    default void getSheetAt(Workbook workbook, Object obj, int index) throws ExcelException {
         Sheet sheet = workbook.getSheetAt(index);
         Map<Integer, Row> rowMap = new HashMap<>();
         Iterator<Row> rows = sheet.rowIterator();
-        ExpressionParser parser = new SpelExpressionParser();
-        // SPEL上下文
-        EvaluationContext context = new StandardEvaluationContext();
-        context.setVariable(obj.getClass().getSimpleName(), obj);
+        CONTEXT.setVariable(obj.getClass().getSimpleName(), obj);
 
         Integer specialIndex = -1;
         String specialValue = Constant.EMPTY_STRING;
@@ -329,7 +326,7 @@ public interface ExcelWriter extends Constant {
                 }
                 String value = ExcelUtils.getCellValue(cell);
                 // 如果为普通的model赋值
-                this.getSheetAtSplit(cell, parser, context, value, EXCEL_MODEL_ANNOTATION);
+                this.getSheetAtSplit(workbook, sheet, row, cell, value, EXCEL_MODEL_ANNOTATION, i);
                 // 如果为集合水平扩展赋值
                 if (value.contains(EXCEL_HORIZONTAL_LIST_ANNOTATION)) {
                     specialIndex = i;
@@ -338,10 +335,10 @@ public interface ExcelWriter extends Constant {
                     for (int j = 0; j < list.size(); j++) {
                         Cell c = row.createCell(i + j);
                         c.setCellStyle(this.defaultColumnStyle(workbook));
-                        c.setCellValue(parser
+                        c.setCellValue(PARSER
                                 .parseExpression(
                                         String.format(value, j).substring(value.indexOf(POUND)))
-                                .getValue(context, String.class));
+                                .getValue(CONTEXT, String.class));
                     }
                     i += list.size() - 1;
                     specialNum += list.size() - 1;
@@ -353,10 +350,10 @@ public interface ExcelWriter extends Constant {
                     List list = getListByReflect(cell, value, obj);
                     for (int j = 0; j < list.size(); j++) {
                         cell = getVerticalValueByList(sheet, row, rowMap, i, j);
-                        cell.setCellValue(parser
+                        cell.setCellValue(PARSER
                                 .parseExpression(
                                         String.format(value, j).substring(value.indexOf(POUND)))
-                                .getValue(context, String.class));
+                                .getValue(CONTEXT, String.class));
                     }
                 }
                 // 特殊行处理
@@ -368,10 +365,10 @@ public interface ExcelWriter extends Constant {
                         cell = getVerticalValueByList(sheet, row, rowMap, i, j);
                         Cell titleCell = sheet.getRow(specialRow - 1).getCell(i);
                         String titleValue = ExcelUtils.getCellValue(titleCell);
-                        cell.setCellValue(String.valueOf(parser
-                                .parseExpression(String.format(specialValue, 0, titleValue)
+                        cell.setCellValue(String.valueOf(PARSER
+                                .parseExpression(String.format(specialValue, j, titleValue)
                                         .substring(specialValue.indexOf(POUND)))
-                                .getValue(context)));
+                                .getValue(CONTEXT)));
                     }
                 }
             }
@@ -380,7 +377,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 利用spel表达式、反射操作获取集合对象n
-     *
      * @param cell 单元格
      * @param val 单元格值
      * @param obj Java对象
@@ -403,7 +399,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 获取单元格对象(集合竖直扩展需要创建单元格对象并赋值)
-     *
      * @param sheet sheet对象
      * @param row 行对象
      * @param rowMap 行关系映射
@@ -426,7 +421,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 清空单元格中的Spel表达式
-     *
      * @param list 集合对象
      * @param cell 单元格对象
      */
@@ -438,18 +432,38 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 若为普通的model赋值,则直接通过Spel表达式赋值
-     *
      * @param cell 单元格对象
-     * @param parser 对象
-     * @param context 对象
      * @param value 值
      * @param modelLogo model处理标识
      */
-    default void getSheetAtSplit(Cell cell, ExpressionParser parser, EvaluationContext context,
-            String value, String modelLogo) {
+    default void getSheetAtSplit(Workbook workbook, Sheet sheet, Row row, Cell cell, String value,
+            String modelLogo, int colNum) throws ExcelException {
         if (null != cell && value.contains(modelLogo)) {
-            cell.setCellValue(parser.parseExpression(value.substring(value.indexOf(POUND)))
-                    .getValue(context, String.class));
+            cell.setCellValue(PARSER.parseExpression(value.substring(value.indexOf(POUND)))
+                    .getValue(CONTEXT, String.class));
+        }
+        if (null != cell && value.contains(EXCEL_IMG_ANNOTATION)) {
+            HSSFPatriarch patriarch = (HSSFPatriarch) sheet.createDrawingPatriarch();
+            String cellValue = PARSER.parseExpression(value.substring(value.indexOf(POUND)))
+                    .getValue(CONTEXT, String.class);
+            HSSFClientAnchor anchor = patriarch.createAnchor(0, 0, 0, 0, colNum, row.getRowNum(),
+                    colNum + 3, row.getRowNum() + 5);
+            // 插入图片
+            if (StringUtils.isNotBlank(cellValue)) {
+                patriarch.createPicture(anchor, workbook.addPicture(
+                        handlePicture(cellValue).toByteArray(), HSSFWorkbook.PICTURE_TYPE_PNG));
+            }
+            cell.setCellValue("");
+        }
+    }
+
+    default ByteArrayOutputStream handlePicture(String pathOfPicture) throws ExcelException {
+        try(ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream()){
+            BufferedImage bufferImg = ImageIO.read(new URL(pathOfPicture));
+            ImageIO.write(bufferImg, "png", byteArrayOut);
+            return byteArrayOut;
+        }catch (IOException e){
+           throw new ExcelException(e);
         }
     }
 
@@ -509,7 +523,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 添加批注
-     *
      * @param sheet sheet对象
      * @param item ValidResult对象
      * @return HSSFComment对象
@@ -530,7 +543,6 @@ public interface ExcelWriter extends Constant {
 
     /**
      * 添加批注
-     *
      * @param sheet sheet对象
      * @param item ValidResult对象
      * @return XSSFComment对象
