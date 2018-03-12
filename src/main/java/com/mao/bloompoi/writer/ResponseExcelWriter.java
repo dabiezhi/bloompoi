@@ -1,5 +1,6 @@
 package com.mao.bloompoi.writer;
 
+import com.mao.bloompoi.enums.ExcelType;
 import com.mao.bloompoi.exception.ExcelException;
 
 import javax.servlet.http.HttpServletResponse;
@@ -26,6 +27,8 @@ public class ResponseExcelWriter implements ExcelWriter {
             servletResponse.setContentType("application/x-xls");
             fileName = new String(fileName.getBytes("UTF-8"), "ISO8859-1");
             servletResponse.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+            ExcelType excelType = ExcelType.getExcelType(fileName);
+            exporter.setExcelType(excelType);
             this.export(exporter, servletResponse.getOutputStream());
         } catch (Exception e) {
             throw new ExcelException(e);
@@ -40,6 +43,8 @@ public class ResponseExcelWriter implements ExcelWriter {
             servletResponse.setContentType("application/x-xls");
             fileName = new String(fileName.getBytes("UTF-8"), "ISO8859-1");
             servletResponse.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+            ExcelType excelType = ExcelType.getExcelType(fileName);
+            exporter.setExcelType(excelType);
             this.exportBySpel(exporter, servletResponse.getOutputStream());
         } catch (Exception e) {
             throw new ExcelException(e);

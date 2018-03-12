@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -28,6 +29,8 @@ public class BloompoiApplicationTests {
 
     @Test
     public void contextLoads() throws ExcelException {
+        int i = (int) (Math.random() * 100);
+        System.out.println(i);
     }
 
 }
